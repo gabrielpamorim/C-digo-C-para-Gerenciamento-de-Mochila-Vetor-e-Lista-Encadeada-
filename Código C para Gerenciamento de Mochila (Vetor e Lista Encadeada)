@@ -1,0 +1,303 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+// --- Definição da Estrutura de Item ---
+typedef struct {
+    char nome[50];
+    int peso;
+} Item;
+
+// --- Implementação da Lista Encadeada (Mochila Flexível) ---
+
+// Nó da Lista Encadeada
+typedef struct Node {
+    Item item;
+    struct Node *next;
+} Node;
+
+// Protótipos para Lista Encadeada
+Node* createNode(char* nome, int peso);
+void insertNode(Node** head, char* nome, int peso);
+bool removeNode(Node** head, char* nome);
+void listNodes(Node* head);
+Node* searchNode(Node* head, char* nome);
+void freeList(Node* head);
+
+// Cria um novo nó
+Node* createNode(char* nome, int peso) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        perror("Erro ao alocar no da lista encadeada");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(newNode->item.nome, nome, 49);
+    newNode->item.nome[49] = '\0';
+    newNode->item.peso = peso;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Inserir um item no início da lista encadeada
+void insertNode(Node** head, char* nome, int peso) {
+    Node* newNode = createNode(nome, peso);
+    newNode->next = *head;
+    *head = newNode;
+    printf("✅ Item '%s' inserido na Mochila Flexivel.\n", nome);
+}
+
+// Remover um item pelo nome da lista encadeada
+bool removeNode(Node** head, char* nome) {
+    Node* current = *head;
+    Node* prev = NULL;
+
+    // Caso o item seja o primeiro (head)
+    if (current != NULL && strcmp(current->item.nome, nome) == 0) {
+        *head = current->next; // Move o head
+        free(current);
+        printf("🗑️ Item '%s' removido da Mochila Flexivel.\n", nome);
+        return true;
+    }
+
+    // Busca o nó a ser removido
+    while (current != NULL && strcmp(current->item.nome, nome) != 0) {
+        prev = current;
+        current = current->next;
+    }
+
+    // Se o item não foi encontrado
+    if (current == NULL) {
+        return false;
+    }
+
+    // Desvia o ponteiro prev
+    prev->next = current->next;
+    free(current);
+    printf("🗑️ Item '%s' removido da Mochila Flexivel.\n", nome);
+    return true;
+}
+
+// Listar todos os itens da lista encadeada
+void listNodes(Node* head) {
+    printf("\n--- Conteudo da Mochila Flexivel (Lista Encadeada) ---\n");
+    if (head == NULL) {
+        printf("A mochila esta vazia.\n");
+        return;
+    }
+    Node* current = head;
+    while (current != NULL) {
+        printf("  [Item: %s, Peso: %d]\n", current->item.nome, current->item.peso);
+        current = current->next;
+    }
+    printf("--------------------------------------------------\n");
+}
+
+// Buscar um item pelo nome na lista encadeada (Busca Linear)
+Node* searchNode(Node* head, char* nome) {
+    Node* current = head;
+    while (current != NULL) {
+        if (strcmp(current->item.nome, nome) == 0) {
+            return current; // Item encontrado
+        }
+        current = current->next;
+    }
+    return NULL; // Item não encontrado
+}
+
+// Libera toda a memória alocada para a lista encadeada
+void freeList(Node* head) {
+    Node* current = head;
+    Node* next;
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+}
+
+// --- Implementação do Vetor (Mochila Estática) ---
+
+#define MAX_SIZE 5 // Capacidade máxima fixa da mochila estática
+
+// Protótipos para Vetor
+void insertStatic(Item* mochila, int* count, char* nome, int peso);
+bool removeStatic(Item* mochila, int* count, char* nome);
+void listStatic(Item* mochila, int count);
+int searchStatic(Item* mochila, int count, char* nome);
+
+// Inserir um item no vetor (fim, se houver espaço)
+void insertStatic(Item* mochila, int* count, char* nome, int peso) {
+    if (*count >= MAX_SIZE) {
+        printf("❌ ERRO: Mochila Estatica Cheia! Nao foi possivel inserir '%s'. (Max: %d)\n", nome, MAX_SIZE);
+        return;
+    }
+    // Cria o novo item
+    strncpy(mochila[*count].nome, nome, 49);
+    mochila[*count].nome[49] = '\0';
+    mochila[*count].peso = peso;
+    
+    (*count)++; // Incrementa o contador de itens
+    printf("✅ Item '%s' inserido na Mochila Estatica.\n", nome);
+}
+
+// Remover um item pelo nome do vetor (Busca Linear + Substituição)
+bool removeStatic(Item* mochila, int* count, char* nome) {
+    int index = searchStatic(mochila, *count, nome);
+    
+    if (index == -1) {
+        return false; // Não encontrado
+    }
+
+    // Move o último item para a posição do item removido
+    // Para evitar furos e manter a ordem (simples).
+    if (index != (*count) - 1) {
+        mochila[index] = mochila[(*count) - 1];
+    }
+    
+    (*count)--; // Decrementa o contador de itens
+    printf("🗑️ Item '%s' removido da Mochila Estatica.\n", nome);
+    return true;
+}
+
+// Listar todos os itens do vetor
+void listStatic(Item* mochila, int count) {
+    printf("\n--- Conteudo da Mochila Estatica (Vetor, Capacidade %d) ---\n", MAX_SIZE);
+    if (count == 0) {
+        printf("A mochila esta vazia.\n");
+        return;
+    }
+    for (int i = 0; i < count; i++) {
+        printf("  [Pos %d] Item: %s, Peso: %d\n", i, mochila[i].nome, mochila[i].peso);
+    }
+    printf("--------------------------------------------------\n");
+}
+
+// Buscar um item pelo nome no vetor (Busca Linear)
+// Retorna o índice do item ou -1 se não encontrado.
+int searchStatic(Item* mochila, int count, char* nome) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(mochila[i].nome, nome) == 0) {
+            return i; // Item encontrado
+        }
+    }
+    return -1; // Item não encontrado
+}
+
+// --- Comparação de Busca (Requisito) ---
+
+void compareSearch(char* target) {
+    printf("\n======================================================\n");
+    printf("        Comparacao de Busca (Manual vs Automatizada)\n");
+    printf("======================================================\n");
+    printf("🔍 Item de Busca: '%s'\n", target);
+
+    // 1. Busca Automatizada (Computacional)
+    
+    // Simulação no Vetor
+    // Esta busca e instantanea do ponto de vista humano
+    // O computador percorre a lista em milissegundos.
+    printf("\n[BUSCA AUTOMATIZADA - C]\n");
+    printf("  O algoritmo busca iterativamente (Busca Linear).\n");
+    printf("  A velocidade depende do tamanho da lista (O(n)).\n");
+    
+    // 2. Busca Manual (Humana)
+    
+    // O humano so precisa olhar para o item
+    printf("\n[BUSCA MANUAL - Humana]\n");
+    printf("  Se uma pessoa estivesse olhando para a mochila (real ou virtual): \n");
+    printf("  - A 'busca' humana e visual e paralela. Nao e 'linear' como a do PC.\n");
+    printf("  - Em listas curtas (mochila), a busca humana pode ser INSTANTANEA.\n");
+    printf("  - Em listas muito longas (ex: 1 milhao de itens), a busca humana se torna impossivel, \n");
+    printf("    enquanto o computador apenas demora um pouco mais (fracao de segundo).\n");
+
+    printf("\n>> Conclusao: Para listas pequenas (mochilas), a busca humana e mais rapida e 'intuitiva'. Para listas grandes, o computador e essencial.\n");
+}
+
+// --- Função Principal (Main) ---
+
+int main() {
+    // Inicialização da Mochila Estática (Vetor)
+    Item mochilaEstatica[MAX_SIZE];
+    int countEstatica = 0; // Contador de itens
+    
+    // Inicialização da Mochila Flexível (Lista Encadeada)
+    Node* headFlexivel = NULL; // Ponteiro inicial (head) da lista
+    
+    printf("======================================================\n");
+    printf("     Sistema de Gerenciamento de Mochila de Aventura\n");
+    printf("======================================================\n");
+    
+    // 1. INSERÇÃO DE ITENS
+    printf("\n--- 1. INSERINDO ITENS ---\n");
+    
+    // Vetor
+    insertStatic(mochilaEstatica, &countEstatica, "Espada", 15);
+    insertStatic(mochilaEstatica, &countEstatica, "Pocao de Vida", 2);
+    insertStatic(mochilaEstatica, &countEstatica, "Escudo de Madeira", 10);
+    insertStatic(mochilaEstatica, &countEstatica, "Bussola", 1);
+    insertStatic(mochilaEstatica, &countEstatica, "Tenda", 20);
+    insertStatic(mochilaEstatica, &countEstatica, "Machado de Ferro", 30); // Tentativa que falhará
+    
+    // Lista Encadeada
+    insertNode(&headFlexivel, "Anel Magico", 1);
+    insertNode(&headFlexivel, "Pergaminho", 5);
+    insertNode(&headFlexivel, "Diamante Bruto", 10);
+    insertNode(&headFlexivel, "Mapa Antigo", 3);
+    insertNode(&headFlexivel, "Bota de Couro", 8);
+    insertNode(&headFlexivel, "Lanterna Quebrada", 4); // A lista encadeada aceita mais!
+    
+    // 2. LISTAGEM DE ITENS
+    listStatic(mochilaEstatica, countEstatica);
+    listNodes(headFlexivel);
+
+    // 3. BUSCA LINEAR
+    printf("\n--- 3. BUSCA LINEAR ---\n");
+    char* buscaItem = "Tenda";
+    
+    // Busca no Vetor
+    int posEstatica = searchStatic(mochilaEstatica, countEstatica, buscaItem);
+    if (posEstatica != -1) {
+        printf("✅ Mochila Estatica: Item '%s' encontrado na posicao %d.\n", buscaItem, posEstatica);
+    } else {
+        printf("❌ Mochila Estatica: Item '%s' nao encontrado.\n", buscaItem);
+    }
+    
+    // Busca na Lista Encadeada
+    Node* nodeFlexivel = searchNode(headFlexivel, buscaItem);
+    if (nodeFlexivel != NULL) {
+        printf("✅ Mochila Flexivel: Item '%s' encontrado. Peso: %d.\n", buscaItem, nodeFlexivel->item.peso);
+    } else {
+        printf("❌ Mochila Flexivel: Item '%s' nao encontrado.\n", buscaItem);
+    }
+
+    // 4. REMOÇÃO DE ITENS
+    printf("\n--- 4. REMOÇÃO DE ITENS ---\n");
+    char* itemRemover = "Pocao de Vida";
+    
+    // Remoção no Vetor
+    if (!removeStatic(mochilaEstatica, &countEstatica, itemRemover)) {
+        printf("❌ ERRO: Nao foi possivel remover '%s' do Vetor (nao encontrado).\n", itemRemover);
+    }
+    
+    // Remoção na Lista Encadeada
+    itemRemover = "Anel Magico";
+    if (!removeNode(&headFlexivel, itemRemover)) {
+        printf("❌ ERRO: Nao foi possivel remover '%s' da Lista (nao encontrado).\n", itemRemover);
+    }
+    
+    // Listagem após remoção
+    listStatic(mochilaEstatica, countEstatica);
+    listNodes(headFlexivel);
+
+    // 5. COMPARAÇÃO ENTRE BUSCA
+    compareSearch("Bussola");
+
+    // 6. LIBERAÇÃO DE MEMÓRIA
+    // O vetor estático é liberado automaticamente ao fim da função
+    // A lista encadeada precisa de liberação manual (freeList)
+    freeList(headFlexivel);
+    printf("\nMemoria da Lista Encadeada liberada com sucesso.\n");
+    
+    return 0;
+}
